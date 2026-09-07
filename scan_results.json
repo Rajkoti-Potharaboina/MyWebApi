@@ -1,0 +1,23 @@
+[
+  {
+    "id": "APP0001",
+    "vulnerability": "SQL Injection",
+    "file": "Program.cs",
+    "line": 23,
+    "details": "Direct string concatenation used in SQL query execution."
+  },
+  {
+    "id": "APP0002",
+    "vulnerability": "Cross-Site Scripting (XSS)",
+    "file": "Program.cs",
+    "line": 39,
+    "details": "Unsanitized user input rendered as raw HTML response."
+  },
+  {
+    "id": "APP0003",
+    "vulnerability": "Hardcoded Secret",
+    "file": "Program.cs",
+    "line": 46,
+    "details": "Sensitive API key exposed directly in source code."
+  }
+]
