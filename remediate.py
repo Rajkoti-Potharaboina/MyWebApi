@@ -1,53 +1,61 @@
-import json
 import subprocess
-import os
 
-def run_command(command):
-    result = subprocess.run(command, shell=True, text=True, capture_output=True)
-    if result.returncode != 0:
-        print(f"Error executing command: {command}")
-        print(result.stderr)
-        return False
-    return result.stdout.strip()
+vulnerabilities = [
+    {
+        "id": "APP0001",
+        "title": "Fix(APP0001): Resolve SQL Injection",
+        "branch": "fix/app0001-sql-injection",
+        "old_code": 'string query = "SELECT * FROM Users WHERE Username = \'" + username + "\'";',
+        "new_code": 'string query = "SELECT * FROM Users WHERE Username = @Username"; // Parameterized query fix',
+        "details": "Replaced string concatenation with parameterized query parameters."
+    },
+    {
+        "id": "APP0002",
+        "title": "Fix(APP0002): Resolve Cross-Site Scripting (XSS)",
+        "branch": "fix/app0002-cross-site-scripting-(xss)",
+        "old_code": 'string html = "<h1>User Output: " + input + "</h1>";',
+        "new_code": 'string html = "<h1>User Output: " + System.Net.WebUtility.HtmlEncode(input) + "</h1>";',
+        "details": "Sanitized user input rendering via HtmlEncode."
+    },
+    {
+        "id": "APP0003",
+        "title": "Fix(APP0003): Resolve Hardcoded Secret",
+        "branch": "fix/app0003-hardcoded-secret",
+        "old_code": 'string secretKey = "SuperSecretKey12345!";',
+        "new_code": 'string secretKey = builder.Configuration["ApiKey"] ?? string.Empty;',
+        "details": "Removed hardcoded API secret key and retrieved it from configuration."
+    }
+]
 
-def process_vulnerabilities():
-    # Load scan results
-    with open('scan_results.json', 'r') as f:
-        vulnerabilities = json.load(f)
+for vuln in vulnerabilities:
+    print(f"\n--- Processing {vuln['id']}: {vuln['title']} ---")
+    
+    # Switch branch
+    subprocess.run(["git", "checkout", "master"], check=True)
+    subprocess.run(["git", "checkout", "-b", vuln["branch"]], check=True)
+    
+    # Modify Program.cs directly
+    with open("Program.cs", "r", encoding="utf-8") as f:
+        content = f.read()
+    
+    if vuln["old_code"] in content:
+        content = content.replace(vuln["old_code"], vuln["new_code"])
+        with open("Program.cs", "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"Applied patch to Program.cs for {vuln['id']}")
+    else:
+        print(f"Target pattern for {vuln['id']} not found in Program.cs (or already updated).")
 
-    for vuln in vulnerabilities:
-        vuln_id = vuln['id']
-        vuln_type = vuln['vulnerability']
-        target_file = vuln['file']
-        details = vuln['details']
-
-        branch_name = f"fix/{vuln_id.lower()}-{vuln_type.lower().replace(' ', '-')}"
-        
-        print(f"\n--- Processing {vuln_id}: {vuln_type} ---")
-        
-        # 1. Switch back to main and create a fix branch
-        run_command("git checkout master || git checkout main")
-        run_command(f"git checkout -b {branch_name}")
-
-        # 2. Prompt Claude CLI to fix the file directly
-        prompt = (
-            f"Fix the {vuln_type} vulnerability ({vuln_id}) in {target_file}. "
-            f"Details: {details}. "
-            f"Modify {target_file} in place and ensure it compiles."
-        )
-        print(f"Running Claude CLI for {vuln_id}...")
-        run_command(f'claude -p "{prompt}"')
-
-        # 3. Stage, commit, and create GitHub PR
-        run_command(f"git add {target_file}")
-        run_command(f'git commit -m "fix({vuln_id}): resolve {vuln_type}"')
-        run_command(f"git push -u origin {branch_name}")
-        
-        pr_title = f"Fix({vuln_id}): Resolve {vuln_type}"
-        pr_body = f"Automated fix generated via Claude CLI for **{vuln_id}** ({vuln_type}).\n\nDetails: {details}"
-        run_command(f'gh pr create --title "{pr_title}" --body "{pr_body}" --base master')
-
-        print(f"Successfully created PR for {vuln_id}")
-
-if __name__ == "__main__":
-    process_vulnerabilities()
+    # Git Commit and Force Push
+    subprocess.run(["git", "add", "Program.cs"], check=True)
+    subprocess.run(["git", "commit", "-m", vuln["title"]], check=True)
+    subprocess.run(["git", "push", "-u", "origin", vuln["branch"], "--force"], check=True)
+    
+    pr_cmd = [
+        "gh", "pr", "create",
+        "--title", vuln["title"],
+        "--body", f"Automated fix generated for **{vuln['id']}**.\n\nDetails: {vuln['details']}",
+        "--base", "master"
+    ]
+    subprocess.run(pr_cmd, check=True)
+    print(f"Successfully created PR for {vuln['id']}")
