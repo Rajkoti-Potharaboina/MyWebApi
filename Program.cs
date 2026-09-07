@@ -21,7 +21,7 @@ string connectionString = "Server=(localdb)\\mssqllocaldb;Database=DemoDb;Truste
 app.MapGet("/api/user/search-vulnerable", (string username) =>
 {
     // Vulnerable: Direct string concatenation
-    string query = "SELECT * FROM Users WHERE Username = '" + username + "'";
+    string query = "SELECT * FROM Users WHERE Username = @Username"; // Parameterized query fix
 
     using (SqlConnection connection = new SqlConnection(connectionString))
     {
