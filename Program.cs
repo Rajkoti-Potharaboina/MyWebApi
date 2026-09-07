@@ -44,7 +44,7 @@ app.MapGet("/api/user/xss", (string input) =>
 // 3. Hardcoded Secret Endpoint (Vulnerable - APP0003)
 app.MapGet("/api/user/config", () =>
 {
-    string secretKey = "SuperSecretKey12345!";
+    string secretKey = builder.Configuration["ApiKey"] ?? string.Empty;
     return Results.Ok(new { ApiKey = secretKey });
 });
 
