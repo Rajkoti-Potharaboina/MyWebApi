@@ -37,7 +37,7 @@ app.MapGet("/api/user/search-vulnerable", (string username) =>
 // 2. Cross-Site Scripting Endpoint (Vulnerable - APP0002)
 app.MapGet("/api/user/xss", (string input) =>
 {
-    string html = "<h1>User Output: " + input + "</h1>";
+    string html = "<h1>User Output: " + System.Net.WebUtility.HtmlEncode(input) + "</h1>";
     return Results.Content(html, "text/html");
 });
 
